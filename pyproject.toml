@@ -7,6 +7,8 @@ authors = ["kentrino <kentrino@h-kento.jp>"]
 [tool.poetry.dependencies]
 python = "^3.8"
 numpy = "^1.19.4"
+line_profiler = "^3.1.0"
+Cython = "^0.29.21"
 
 [tool.poetry.dev-dependencies]
 
