@@ -10,7 +10,6 @@ except NameError:
     def profile(func):
         return func
 
-
 f = [
     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -32,14 +31,33 @@ class Command(NamedTuple):
     n: int
 
 
+numpy_hash = np.frompyfunc(lambda a, b: a * 2 + b, 2, 1)
+
+
+def make_hash(a: np.ndarray, items: int):
+    return numpy_hash.accumulate(a, dtype=np.object)[items - 1] + 2 ** items
+
+
+_roll_cache = {}
+
+
+def roll(ring: np.ndarray, n: int, items: int):
+    key = (make_hash(ring, items), n)
+    if key not in _roll_cache:
+        rolled = np.roll(ring, n)
+        _roll_cache[key] = rolled
+        return rolled
+    return _roll_cache[key]
+
+
 @profile
 def process_command(field, c: Command):
     if c.type == "r":
-        field[c.i] = np.roll(field[c.i], c.n)
+        field[c.i] = roll(field[c.i], c.n, 12)
         return field
     else:
         fi = np.concatenate([field[:, 0:6], np.flipud(field[:, 6:12])])
-        fi[:, c.i] = np.roll(fi[:, c.i], c.n)
+        fi[:, c.i] = roll(fi[:, c.i], c.n, 8)
         return np.concatenate([fi[0:4, :], np.flipud(fi[4:8, :])], 1)
 
 
@@ -63,12 +81,12 @@ def generate_one(m: int) -> Command:
     if m < ring_rotation_patterns:
         n = m // 4
         i = m % 4
-        return Command(type="r", i=i, n=n+1)
+        return Command(type="r", i=i, n=n + 1)
     else:
         b = m - 44
         n = b // 6
         i = b % 6
-        return Command(type="c", i=i, n=n+1)
+        return Command(type="c", i=i, n=n + 1)
 
 
 @profile
