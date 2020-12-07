@@ -72,22 +72,7 @@ def generate_one(m: int) -> Command:
 
 
 @profile
-def check_boots(_field: np.ndarray, _i: int):
-    # 282ms
-    return \
-        _field[0, _i] == 1 and \
-        _field[1, _i] == 1 and \
-        _field[2, _i] == 1 and \
-        _field[3, _i] == 1
-    # 715ms
-    # return np.all(_field[:, _i] == 1)
-
-
-@profile
 def check_hummer(_field: np.ndarray, _i: int):
-    # 2331ms
-    # return np.all(np.stack([_field[2:4, _i - 1], _field[2:4, _i]], 1))
-    # 337ms
     return \
         _field[2, _i - 1] == 1 and \
         _field[3, _i - 1] == 1 and \
@@ -119,26 +104,22 @@ numpy_change = np.frompyfunc(change, 1, 1)
 
 @profile
 def check(field: np.ndarray):
-    # 1902ms
+    # [4, 3, 2, 1, ... , 0]
     a = np.sum(field, axis=0)
-    # この枝刈りで1902ms -> 540ms
     if np.any(a == 3) or np.any(a == 1):
         return False
-    c = a // 4
-    d = field - np.stack([c, c, c, c], axis=0)
-    if np.any(d[0:2, :] == 1):
+    # [1, 0, 0, 0, ... , 0]
+    b = a // 4
+    # bootsにヒットしたものを除いた残り
+    left = field - np.stack([b, b, b, b], axis=0)
+    # 上段に1があればfail
+    if np.any(left[0:2, :] == 1):
         return False
-    # b = a - c * 4
-    # np.where(b == 2)
-    # 2159ms
-    # for i in range(0, 12):
-    #     if check_boots(field, i):
-    #         add_boots(z, i)
     z = np.array(zero)
     for i in range(0, 12):
         if check_hummer(field, i):
             add_hummer(z, i)
-    return np.all(d - z == 0)
+    return np.all(left - z == 0)
 
 
 @profile
