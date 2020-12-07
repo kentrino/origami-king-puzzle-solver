@@ -149,6 +149,8 @@ def erase(n: int = 1):
         sys.stdout.write(erase_line)
 
 
+
+
 @profile
 def solve(input_):
     field_0 = np.array(input_)
