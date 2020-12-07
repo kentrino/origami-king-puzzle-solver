@@ -107,16 +107,38 @@ def add_boots(_field: np.ndarray, _i: int):
 
 
 @profile
+def change(i: int):
+    if i == 4:
+        return 1
+    else:
+        return 0
+
+
+numpy_change = np.frompyfunc(change, 1, 1)
+
+
+@profile
 def check(field: np.ndarray):
+    # 1902ms
+    a = np.sum(field, axis=0)
+    # この枝刈りで1902ms -> 540ms
+    if np.any(a == 3) or np.any(a == 1):
+        return False
+    c = a // 4
+    d = field - np.stack([c, c, c, c], axis=0)
+    if np.any(d[0:2, :] == 1):
+        return False
+    # b = a - c * 4
+    # np.where(b == 2)
+    # 2159ms
+    # for i in range(0, 12):
+    #     if check_boots(field, i):
+    #         add_boots(z, i)
     z = np.array(zero)
-    # np.where(np.sum(field, axis=0) == 4)
-    for i in range(0, 12):
-        if check_boots(field, i):
-            add_boots(z, i)
     for i in range(0, 12):
         if check_hummer(field, i):
             add_hummer(z, i)
-    return np.all(field - z == 0)
+    return np.all(d - z == 0)
 
 
 @profile
@@ -139,7 +161,7 @@ def solve(input_):
             field_2 = np.copy(field_1)
             command_2 = generate_one(j)
             field_2 = process_command(field_2, command_2)
-            for k in range(0, 2):
+            for k in range(0, all_patterns):
                 field_3 = np.copy(field_2)
                 command_3 = generate_one(k)
                 print(command_1, command_2, command_3)
