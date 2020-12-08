@@ -43,4 +43,7 @@ def solve_multiprocess(initial_field: List[List[int]], n_process, debug_print: b
         _loop = asyncio.get_event_loop()
         results = _loop.run_until_complete(
             _async_solve(_loop, np.array(initial_field), queue=p.queue, n_process=n_process))
-    return list(list(filter(lambda r: r is not None, results))[0])
+    succeeded = list(filter(lambda r: r is not None, results))
+    if len(succeeded) == 0:
+        raise ValueError("field cannot be solved")
+    return list(succeeded[0])

@@ -1,5 +1,5 @@
 from multiprocessing import Queue
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, List
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class RunContext(NamedTuple):
 
 
 @profile
-def _process_command(field, c: Command):
+def _process_command(field: np.ndarray, c: Command):
     if c.type == "r":
         field[c.i] = np.roll(field[c.i], c.n)
         return field
@@ -107,22 +107,27 @@ def _check(field: np.ndarray):
     return np.all(left - z == 0)
 
 
-def run(context: RunContext):
+def run(context: RunContext) -> Optional[List[Command]]:
     for i in context.range:
         if i >= all_patterns:
-            return
-        field_1 = np.copy(context.field_0)
-        command_1 = _generate_command(i)
-        field_1 = _process_command(field_1, command_1)
+            return None
+        # noinspection PyTypeChecker
+        f: List[np.ndarray] = [None] * 3
+        # noinspection PyTypeChecker
+        c: List[Command] = [None] * 3
+        f[0] = np.copy(context.field_0)
+        c[0] = _generate_command(i)
+        f[0] = _process_command(f[0], c[0])
         for j in range(0, all_patterns):
-            field_2 = np.copy(field_1)
-            command_2 = _generate_command(j)
-            field_2 = _process_command(field_2, command_2)
+            f[1] = np.copy(f[0])
+            c[1] = _generate_command(j)
+            f[1] = _process_command(f[1], c[1])
             for k in range(0, all_patterns):
-                field_3 = np.copy(field_2)
-                command_3 = _generate_command(k)
+                f[2] = np.copy(f[1])
+                c[2] = _generate_command(k)
                 if context.queue is not None:
-                    context.queue.debug([command_1, command_2, command_3], context.task_id)
-                field_3 = _process_command(field_3, command_3)
-                if _check(field_3):
-                    return command_1, command_2, command_3
+                    context.queue.debug(c, context.task_id)
+                f[2] = _process_command(f[2], c[2])
+                if _check(f[2]):
+                    return c
+    return None

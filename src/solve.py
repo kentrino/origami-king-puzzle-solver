@@ -17,3 +17,4 @@ def solve(initial_field: List[List[int]]) -> List[Command]:
             ))
         if result is not None:
             return result
+    raise ValueError("field cannot be solved")
