@@ -1,5 +1,5 @@
 from multiprocessing import Queue
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import numpy as np
 
@@ -29,7 +29,7 @@ class RunContext(NamedTuple):
     field_0: np.ndarray
     range: range
     task_id: int
-    queue: Queue
+    queue: Optional[Queue]
 
 
 @profile
@@ -120,8 +120,8 @@ def run(context: RunContext):
             for k in range(0, all_patterns):
                 field_3 = np.copy(field_2)
                 command_3 = _generate_command(k)
-                context.queue.put(([command_1, command_2, command_3], context.task_id))
-                # context.printer.show([command_1, command_2, command_3], context.task_no)
+                if context.queue is not None:
+                    context.queue.put(([command_1, command_2, command_3], context.task_id))
                 field_3 = _process_command(field_3, command_3)
                 if _check(field_3):
                     return command_1, command_2, command_3

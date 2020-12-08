@@ -10,15 +10,19 @@ def _print_runner(queue: Queue, lines: int):
     printer.run()
 
 
-def start_printer(queue, lines):
-    p = Process(target=_print_runner, args=(queue, lines))
-    p.start()
+class PrinterStarter(object):
+    def __init__(self, queue: Queue, lines: int):
+        self.queue = queue
+        self.lines = lines
 
-    def stop():
-        queue.put((STOP, 0))
-        p.join()
-        p.close()
-    return stop
+    def __enter__(self):
+        self.process = Process(target=_print_runner, args=(self.queue, self.lines))
+        self.process.start()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.queue.put((STOP, 0))
+        self.process.join()
+        self.process.close()
 
 
 def _down(n: int):
