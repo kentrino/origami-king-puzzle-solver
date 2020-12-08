@@ -2,7 +2,7 @@ import sys
 from multiprocessing.context import Process
 from multiprocessing import Queue
 
-STOP = "___STOP___"
+from message_queue import MessageQueue, STOP
 
 
 def _print_runner(queue: Queue, lines: int):
@@ -11,18 +11,21 @@ def _print_runner(queue: Queue, lines: int):
 
 
 class PrinterStarter(object):
-    def __init__(self, queue: Queue, lines: int):
+    def __init__(self, queue: MessageQueue, lines: int, debug_print: bool):
         self.queue = queue
         self.lines = lines
+        self.debug_print = debug_print
 
     def __enter__(self):
-        self.process = Process(target=_print_runner, args=(self.queue, self.lines))
-        self.process.start()
+        if self.debug_print:
+            self.process = Process(target=_print_runner, args=(self.queue, self.lines))
+            self.process.start()
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.queue.put((STOP, 0))
-        self.process.join()
-        self.process.close()
+        if self.debug_print:
+            self.queue.stop()
+            self.process.join()
+            self.process.close()
 
 
 def _down(n: int):
@@ -57,13 +60,13 @@ class Printer(object):
 
     def run(self):
         while True:
-            message, i = self.queue.get()
-            if message == STOP:
+            _type, message, i = self.queue.get()
+            if _type == STOP:
                 break
             self.show(message, i)
         _clear()
 
-    def show(self, message, i: int):
+    def show(self, message: any, i: int):
         if i >= self.lines:
             return
         _down(i)

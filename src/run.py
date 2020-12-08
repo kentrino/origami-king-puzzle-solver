@@ -3,6 +3,7 @@ from typing import NamedTuple, Optional
 
 import numpy as np
 
+from message_queue import MessageQueue
 
 _zero = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -29,7 +30,7 @@ class RunContext(NamedTuple):
     field_0: np.ndarray
     range: range
     task_id: int
-    queue: Optional[Queue]
+    queue: Optional[MessageQueue]
 
 
 @profile
@@ -121,7 +122,7 @@ def run(context: RunContext):
                 field_3 = np.copy(field_2)
                 command_3 = _generate_command(k)
                 if context.queue is not None:
-                    context.queue.put(([command_1, command_2, command_3], context.task_id))
+                    context.queue.debug([command_1, command_2, command_3], context.task_id)
                 field_3 = _process_command(field_3, command_3)
                 if _check(field_3):
                     return command_1, command_2, command_3

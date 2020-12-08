@@ -1,11 +1,11 @@
 import asyncio
 from asyncio import AbstractEventLoop
 from concurrent.futures.process import ProcessPoolExecutor
-from multiprocessing import Queue, Manager
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 
+from message_queue import MessageQueue
 from printer import PrinterStarter
 from run import RunContext, run, all_patterns
 
@@ -20,7 +20,7 @@ async def async_run(
         context)
 
 
-async def async_solve(loop: AbstractEventLoop, field_0: np.ndarray, queue: Optional[Queue], n_process: int):
+async def async_solve(loop: AbstractEventLoop, field_0: np.ndarray, queue: MessageQueue, n_process: int):
     t = all_patterns // n_process
     ranges = [range(i * t + 1, (i + 1) * t) for i in range(0, n_process)]
     tasks = []
@@ -47,11 +47,8 @@ _initial_field = [
 
 
 def solve_multiprocess(initial_field: List[List[int]], n_process, debug_print: bool):
-    if debug_print:
-        queue = Manager().Queue()
-    else:
-        queue = None
-    with PrinterStarter(queue=queue, lines=n_process):
+    queue = MessageQueue(debug_print)
+    with PrinterStarter(queue=queue, lines=n_process, debug_print=debug_print):
         _loop = asyncio.get_event_loop()
         results = _loop.run_until_complete(async_solve(_loop, np.array(initial_field), queue=queue, n_process=n_process))
         print(list(filter(lambda r: r is not None, results))[0])
