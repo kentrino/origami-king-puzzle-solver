@@ -8,4 +8,4 @@ _initial_field = [
 ]
 
 if __name__ == '__main__':
-    solve_multiprocess(_initial_field, n_process=6, debug_print=True)
+    solve_multiprocess(_initial_field, n_process=16, debug_print=False)
