@@ -8,7 +8,7 @@ from typing import TypedDict, NamedTuple
 import numpy as np
 import sys
 
-from Printer import Printer
+from printer import Printer
 
 try:
     profile
