@@ -1,8 +1,14 @@
+import asyncio
+import threading
+from asyncio import AbstractEventLoop
 from collections import namedtuple
+from concurrent.futures.process import ProcessPoolExecutor
 from typing import TypedDict, NamedTuple
 
 import numpy as np
 import sys
+
+from Printer import Printer
 
 try:
     profile
@@ -10,7 +16,7 @@ except NameError:
     def profile(func):
         return func
 
-f = [
+initial_field = [
     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1],
@@ -31,33 +37,14 @@ class Command(NamedTuple):
     n: int
 
 
-numpy_hash = np.frompyfunc(lambda a, b: a * 2 + b, 2, 1)
-
-
-def make_hash(a: np.ndarray, items: int):
-    return numpy_hash.accumulate(a, dtype=np.object)[items - 1] + 2 ** items
-
-
-_roll_cache = {}
-
-
-def roll(ring: np.ndarray, n: int, items: int):
-    key = (make_hash(ring, items), n)
-    if key not in _roll_cache:
-        rolled = np.roll(ring, n)
-        _roll_cache[key] = rolled
-        return rolled
-    return _roll_cache[key]
-
-
 @profile
 def process_command(field, c: Command):
     if c.type == "r":
-        field[c.i] = roll(field[c.i], c.n, 12)
+        field[c.i] = np.roll(field[c.i], c.n)
         return field
     else:
         fi = np.concatenate([field[:, 0:6], np.flipud(field[:, 6:12])])
-        fi[:, c.i] = roll(fi[:, c.i], c.n, 8)
+        fi[:, c.i] = np.roll(fi[:, c.i], c.n)
         return np.concatenate([fi[0:4, :], np.flipud(fi[4:8, :])], 1)
 
 
@@ -105,22 +92,6 @@ def add_hummer(_field: np.ndarray, _i: int):
 
 
 @profile
-def add_boots(_field: np.ndarray, _i: int):
-    _field[:, _i] = [1, 1, 1, 1]
-
-
-@profile
-def change(i: int):
-    if i == 4:
-        return 1
-    else:
-        return 0
-
-
-numpy_change = np.frompyfunc(change, 1, 1)
-
-
-@profile
 def check(field: np.ndarray):
     # [4, 3, 2, 1, ... , 0]
     a = np.sum(field, axis=0)
@@ -149,13 +120,18 @@ def erase(n: int = 1):
         sys.stdout.write(erase_line)
 
 
+class RunArgs(NamedTuple):
+    field_0: np.ndarray
+    range: range
+    task_no: int
+    printer: Printer
 
 
-@profile
-def solve(input_):
-    field_0 = np.array(input_)
-    for i in range(0, all_patterns):
-        field_1 = np.copy(field_0)
+def run_range(context: RunArgs):
+    for i in context.range:
+        if i >= all_patterns:
+            return
+        field_1 = np.copy(context.field_0)
         command_1 = generate_one(i)
         field_1 = process_command(field_1, command_1)
         for j in range(0, all_patterns):
@@ -165,13 +141,45 @@ def solve(input_):
             for k in range(0, all_patterns):
                 field_3 = np.copy(field_2)
                 command_3 = generate_one(k)
-                print(command_1, command_2, command_3)
+                # context.printer.show([command_1, command_2, command_3], context.task_no)
+                # print(command_1, command_2, command_3)
                 field_3 = process_command(field_3, command_3)
                 if check(field_3):
                     print(command_1, command_2, command_3)
-                    return
-                erase()
+                    return command_1, command_2, command_3
+                # erase()
 
 
-solve(f)
-# process(f, [['c', 1, 4], ['r', 2, 1], ['c', 1, 4]])
+async def async_run_range(
+        loop: AbstractEventLoop,
+        executor: ProcessPoolExecutor,
+        context: RunArgs):
+    return await loop.run_in_executor(
+        executor,
+        run_range,
+        context)
+
+
+async def async_solve(loop: AbstractEventLoop, field_0: np.ndarray, printer: Printer):
+    ranges = [range(i * 6 + 1, (i + 1) * 6) for i in range(0, 15)]
+    tasks = []
+    with ProcessPoolExecutor(max_workers=16) as executor:
+        for i, _range in enumerate(ranges):
+            tasks.append(asyncio.create_task(async_run_range(
+                loop,
+                executor,
+                RunArgs(
+                    task_no=i,
+                    printer=printer,
+                    field_0=field_0,
+                    range=_range,
+                ))))
+        await asyncio.gather(*tasks)
+
+
+if __name__ == '__main__':
+    p = Printer(16)
+    _loop = asyncio.get_event_loop()
+    _loop.run_until_complete(async_solve(_loop, np.array(initial_field), printer=p))
+    p.finalize()
+
