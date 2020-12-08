@@ -7,7 +7,7 @@ import numpy as np
 
 from message_queue import MessageQueue
 from printer import Printer
-from run import RunContext, run, all_patterns
+from run import RunContext, run, all_patterns, Command
 
 
 async def _async_run(
@@ -38,9 +38,9 @@ async def _async_solve(loop: AbstractEventLoop, field_0: np.ndarray, queue: Mess
         return await asyncio.gather(*tasks)
 
 
-def solve_multiprocess(initial_field: List[List[int]], n_process, debug_print: bool):
+def solve_multiprocess(initial_field: List[List[int]], n_process, debug_print: bool) -> List[Command]:
     with Printer(lines=n_process, debug_print=debug_print) as p:
         _loop = asyncio.get_event_loop()
         results = _loop.run_until_complete(
             _async_solve(_loop, np.array(initial_field), queue=p.queue, n_process=n_process))
-    print(list(filter(lambda r: r is not None, results))[0])
+    return list(list(filter(lambda r: r is not None, results))[0])

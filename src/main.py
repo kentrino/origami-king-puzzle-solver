@@ -1,3 +1,4 @@
+from solve import solve
 from solve_multiprocess import solve_multiprocess
 
 _initial_field = [
@@ -8,4 +9,5 @@ _initial_field = [
 ]
 
 if __name__ == '__main__':
-    solve_multiprocess(_initial_field, n_process=16, debug_print=False)
+    print(solve_multiprocess(_initial_field, n_process=16, debug_print=False))
+    # print(solve(_initial_field))
