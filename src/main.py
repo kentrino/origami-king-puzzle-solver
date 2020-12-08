@@ -1,11 +1,13 @@
 import asyncio
 from asyncio import AbstractEventLoop
 from concurrent.futures.process import ProcessPoolExecutor
+from multiprocessing import Queue, Manager
+from typing import List
 
 import numpy as np
 
-from printer import Printer
-from run import RunContext, run
+from printer import start_printer
+from run import RunContext, run, all_patterns
 
 
 async def async_run(
@@ -18,21 +20,22 @@ async def async_run(
         context)
 
 
-async def async_solve(loop: AbstractEventLoop, field_0: np.ndarray, printer: Printer):
-    ranges = [range(i * 6 + 1, (i + 1) * 6) for i in range(0, 15)]
+async def async_solve(loop: AbstractEventLoop, field_0: np.ndarray, queue: Queue, n_process: int):
+    t = all_patterns // n_process
+    ranges = [range(i * t + 1, (i + 1) * t) for i in range(0, n_process)]
     tasks = []
-    with ProcessPoolExecutor(max_workers=16) as executor:
+    with ProcessPoolExecutor(max_workers=n_process) as executor:
         for i, _range in enumerate(ranges):
             tasks.append(asyncio.create_task(async_run(
                 loop,
                 executor,
                 RunContext(
-                    task_no=i,
-                    printer=printer,
+                    task_id=i,
+                    queue=queue,
                     field_0=field_0,
                     range=_range,
                 ))))
-        await asyncio.gather(*tasks)
+        return await asyncio.gather(*tasks)
 
 
 _initial_field = [
@@ -43,8 +46,16 @@ _initial_field = [
 ]
 
 
-if __name__ == '__main__':
-    p = Printer(16)
+def solve_multiprocess(initial_field: List[List[int]]):
+    manager = Manager()
+    queue = manager.Queue()
+    n_process = 6
+    close_printer = start_printer(queue=queue, lines=n_process)
     _loop = asyncio.get_event_loop()
-    _loop.run_until_complete(async_solve(_loop, np.array(_initial_field), printer=p))
-    p.finalize()
+    results = _loop.run_until_complete(async_solve(_loop, np.array(initial_field), queue=queue, n_process=n_process))
+    close_printer()
+    print(list(filter(lambda r: r is not None, results))[0])
+
+
+if __name__ == '__main__':
+    solve_multiprocess(_initial_field)

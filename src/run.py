@@ -1,8 +1,7 @@
+from multiprocessing import Queue
 from typing import NamedTuple
 
 import numpy as np
-
-from printer import Printer
 
 
 _zero = [
@@ -29,8 +28,8 @@ class Command(NamedTuple):
 class RunContext(NamedTuple):
     field_0: np.ndarray
     range: range
-    task_no: int
-    printer: Printer
+    task_id: int
+    queue: Queue
 
 
 @profile
@@ -121,10 +120,8 @@ def run(context: RunContext):
             for k in range(0, all_patterns):
                 field_3 = np.copy(field_2)
                 command_3 = _generate_command(k)
+                context.queue.put(([command_1, command_2, command_3], context.task_id))
                 # context.printer.show([command_1, command_2, command_3], context.task_no)
-                # print(command_1, command_2, command_3)
                 field_3 = _process_command(field_3, command_3)
                 if _check(field_3):
-                    print(command_1, command_2, command_3)
                     return command_1, command_2, command_3
-                # erase()
