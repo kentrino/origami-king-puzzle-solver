@@ -6,7 +6,7 @@ from typing import List
 import numpy as np
 
 from message_queue import MessageQueue
-from printer import PrinterStarter
+from printer import Printer
 from run import RunContext, run, all_patterns
 
 
@@ -47,11 +47,11 @@ _initial_field = [
 
 
 def solve_multiprocess(initial_field: List[List[int]], n_process, debug_print: bool):
-    queue = MessageQueue(debug_print)
-    with PrinterStarter(queue=queue, lines=n_process, debug_print=debug_print):
+    with Printer(lines=n_process, debug_print=debug_print) as p:
         _loop = asyncio.get_event_loop()
-        results = _loop.run_until_complete(async_solve(_loop, np.array(initial_field), queue=queue, n_process=n_process))
-        print(list(filter(lambda r: r is not None, results))[0])
+        results = _loop.run_until_complete(
+            async_solve(_loop, np.array(initial_field), queue=p.queue, n_process=n_process))
+    print(list(filter(lambda r: r is not None, results))[0])
 
 
 if __name__ == '__main__':

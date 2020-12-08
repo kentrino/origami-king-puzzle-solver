@@ -6,13 +6,13 @@ from message_queue import MessageQueue, STOP
 
 
 def _print_runner(queue: Queue, lines: int):
-    printer = Printer(lines=lines, queue=queue)
+    printer = InternalPrinter(lines=lines, queue=queue)
     printer.run()
 
 
-class PrinterStarter(object):
-    def __init__(self, queue: MessageQueue, lines: int, debug_print: bool):
-        self.queue = queue
+class Printer(object):
+    def __init__(self, lines: int, debug_print: bool):
+        self.queue = MessageQueue(debug_print=debug_print)
         self.lines = lines
         self.debug_print = debug_print
 
@@ -20,6 +20,7 @@ class PrinterStarter(object):
         if self.debug_print:
             self.process = Process(target=_print_runner, args=(self.queue, self.lines))
             self.process.start()
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.debug_print:
@@ -50,7 +51,7 @@ move_left_most = "\x1b[1000D"
 erase_line = '\x1b[K'
 
 
-class Printer(object):
+class InternalPrinter(object):
     def __init__(self, lines: int, queue: Queue):
         self.lines = lines
         for i in range(0, lines):
