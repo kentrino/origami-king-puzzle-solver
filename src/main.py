@@ -46,10 +46,9 @@ _initial_field = [
 ]
 
 
-def solve_multiprocess(initial_field: List[List[int]]):
+def solve_multiprocess(initial_field: List[List[int]], n_process):
     manager = Manager()
     queue = manager.Queue()
-    n_process = 6
     close_printer = start_printer(queue=queue, lines=n_process)
     _loop = asyncio.get_event_loop()
     results = _loop.run_until_complete(async_solve(_loop, np.array(initial_field), queue=queue, n_process=n_process))
@@ -58,4 +57,4 @@ def solve_multiprocess(initial_field: List[List[int]]):
 
 
 if __name__ == '__main__':
-    solve_multiprocess(_initial_field)
+    solve_multiprocess(_initial_field, n_process=6)
